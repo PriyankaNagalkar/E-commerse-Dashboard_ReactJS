@@ -1,13 +1,53 @@
-import Header from "./Header"
+
+import { Link } from "react-router-dom";
+import { ArrowRight, Stars  } from "react-bootstrap-icons";
+
 function Home() {
-    return (
-        <div className="homePage">
-            <Header />
-            <div className="textContent">
-                <h1>Welcome to My Store</h1>
-                <p>THE PATH TO YOUTH</p>
+  return (
+    <div className="home-page">
+      <section className="hero-section">
+        <div className="hero-content">
+          <span className="hero-label">
+            <Stars size={16} /> BEAUTY STARTS HERE
+          </span>
+
+          <h1>
+            Welcome to <span>GlowStore</span>
+          </h1>
+
+          <h2>Discover Your Natural Glow</h2>
+
+          <p>
+            Explore beauty essentials, discover your favorites
+            and make every day a little more beautiful.
+          </p>
+
+          <div className="hero-buttons">
+            <Link to="/register" className="hero-btn secondary-btn">
+              Join GlowStore <ArrowRight size={18} />
+            </Link>
+          </div>
+
+          <div className="hero-stats">
+            <div>
+              <strong>50+</strong>
+              <span>Beauty Products</span>
             </div>
+            <div>
+              <strong>Everyday</strong>
+              <span>New Discoveries</span>
+            </div>
+          </div>
         </div>
-    )
+
+        <div className="hero-decoration">
+          <div className="floating-circle circle-one">✦</div>
+          <div className="floating-circle circle-two">♡</div>
+          <div className="floating-circle circle-three">✧</div>
+        </div>
+      </section>
+    </div>
+  );
 }
-export default Home
+
+export default Home;

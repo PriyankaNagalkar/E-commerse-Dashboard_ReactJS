@@ -1,20 +1,80 @@
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { Button, Modal, Spinner, Toast, ToastContainer } from "react-bootstrap";
-import { X, Handbag, HeartFill, Heart, StarFill, Cart3, BagCheck } from "react-bootstrap-icons";
+import {
+  X, Handbag, HeartFill, Heart, StarFill, Cart3, BagCheck,
+  CheckCircleFill, HeartbreakFill,                                   // NEW
+} from "react-bootstrap-icons";
 import { useproducts } from "../Context/ProductContext";
 import { useInfiniteScroll } from "../hooks/useInfiniteScroll";
 import Header from "./Header";
+import ProductDetails from "./ProductDetails";
 
 const PAGE_SIZE = 8;
 
-function Wishlist() {
-  const { wishlist, setWishlist, toggleWishlist, addToCart, isInCart } = useproducts();
+// NEW: a copy of the product image flies to the cart icon in the header
+function flyToCart(imgEl) {
+  const target = document.querySelector('.icon-link[href="/cart"]');
+  if (!imgEl || !target) return;
+  if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
 
+  const from = imgEl.getBoundingClientRect();
+  const to = target.getBoundingClientRect();
+  const size = 72;
+
+  const startX = from.left + from.width / 2 - size / 2;
+  const startY = from.top + from.height / 2 - size / 2;
+  const dx = to.left + to.width / 2 - size / 2 - startX;
+  const dy = to.top + to.height / 2 - size / 2 - startY;
+
+  const fly = document.createElement("img");
+  fly.src = imgEl.currentSrc || imgEl.src;
+  Object.assign(fly.style, {
+    position: "fixed",
+    left: `${startX}px`,
+    top: `${startY}px`,
+    width: `${size}px`,
+    height: `${size}px`,
+    objectFit: "contain",
+    padding: "4px",
+    borderRadius: "14px",
+    background: "#fff",
+    boxShadow: "0 10px 24px rgba(120, 20, 60, 0.35)",
+    zIndex: 3000,
+    pointerEvents: "none",
+  });
+  document.body.appendChild(fly);
+
+  const flight = fly.animate(
+    [
+      { transform: "translate(0, 0) scale(1)", opacity: 1 },
+      { transform: `translate(${dx * 0.55}px, ${dy * 0.55 - 70}px) scale(0.7)`, opacity: 1, offset: 0.55 },  // arcs upward first
+      { transform: `translate(${dx}px, ${dy}px) scale(0.2)`, opacity: 0.5 },
+    ],
+    { duration: 750, easing: "ease-in-out" }
+  );
+
+  flight.onfinish = () => {
+    fly.remove();
+    target.animate(                                   // the cart icon bumps when the image lands
+      [{ transform: "scale(1)" }, { transform: "scale(1.35)" }, { transform: "scale(1)" }],
+      { duration: 350, easing: "ease-out" }
+    );
+  };
+}
+
+function Wishlist() {
+  const { wishlist, products, setWishlist, toggleWishlist, addToCart, isInCart } = useproducts();
   const [category, setCategory] = useState("all");
   const [removingId, setRemovingId] = useState(null);
+  const [breakingId, setBreakingId] = useState(null);   // NEW: X turns into a broken heart
+  const [addedId, setAddedId] = useState(null);         // NEW: button shows the green "Added" state
   const [toast, setToast] = useState(null);
   const [showClear, setShowClear] = useState(false);
+  const [selectedId, setSelectedId] = useState(null);
+
+  // prefer the live product, so edits show up; fall back to the saved copy
+  const selected = products.find((p) => p.id === selectedId) || wishlist.find((p) => p.id === selectedId);
 
   const totalValue = wishlist.reduce((sum, p) => sum + Number(p.price || 0), 0);
 
@@ -34,18 +94,36 @@ function Wishlist() {
     useInfiniteScroll(filtered, PAGE_SIZE, activeCategory, 0);
 
   // play the exit animation first, then remove
-  function removeWithAnimation(item) {
+  function removeWithAnimation(item, toastData = { msg: "Removed from wishlist", undo: item }) {
     setRemovingId(item.id);
     setTimeout(() => {
       toggleWishlist(item);
       setRemovingId(null);
+      setBreakingId(null);
+      setAddedId(null);
+      setToast(toastData);
     }, 300);
   }
 
-  function moveToBag(item) {
+  // NEW: X button: broken heart plays for a moment, then the card leaves
+  function handleRemove(item) {
+    if (breakingId === item.id) return;
+    setBreakingId(item.id);
+    setTimeout(() => removeWithAnimation(item), 450);
+  }
+
+  // NEW: image flies to the cart, button turns green, then the card leaves
+  function moveToBag(item, e) {
+    if (addedId === item.id) return;
+    const img = e.currentTarget.closest(".wl-card")?.querySelector(".wl-img img");
+
+    flyToCart(img);
     addToCart(item);
-    removeWithAnimation(item);
-    setToast({ msg: `"${item.title}" moved to bag`, link: true });
+    setAddedId(item.id);
+
+    setTimeout(() => {
+      removeWithAnimation(item, { msg: `"${item.title}" moved to bag`, link: true });
+    }, 600);
   }
 
   function moveAllToBag() {
@@ -120,15 +198,16 @@ function Wishlist() {
                     <div
                       className={`wl-card ${removingId === item.id ? "leaving" : ""}`}
                       style={{ "--i": Math.min(index, 12) }}
+                      onClick={(e) => { if (!e.target.closest("button, a")) setSelectedId(item.id); }}
                     >
                       <div className="wl-img">
                         <button
                           type="button"
-                          className="wl-remove"
+                          className={`wl-remove ${breakingId === item.id ? "breaking" : ""}`}
                           aria-label={`Remove ${item.title} from wishlist`}
-                          onClick={() => removeWithAnimation(item)}
+                          onClick={() => handleRemove(item)}
                         >
-                          <X />
+                          {breakingId === item.id ? <HeartbreakFill /> : <X />}
                         </button>
 
                         {discount > 0 && <span className="wl-discount">-{discount}%</span>}
@@ -150,14 +229,28 @@ function Wishlist() {
                           <span className="now">${Number(item.price).toFixed(2)}</span>
                           {original && <span className="was">${original.toFixed(2)}</span>}
                         </div>
+
+                        {item.stock > 0 && item.stock < 10 && <span className="wl-low">Only {item.stock} left</span>}
+
+                        {item.colors?.length > 0 && (
+                          <div className="card-dots">
+                            {item.colors.slice(0, 5).map((c, i) => <span key={i} style={{ background: c.hex }} />)}
+                            {item.colors.length > 5 && <small>+{item.colors.length - 5}</small>}
+                          </div>
+                        )}
                       </div>
 
-                      {isInCart(item.id) ? (
+                      {/* NEW: three states: added (green) / go to cart / move to bag */}
+                      {addedId === item.id ? (
+                        <button type="button" className="wl-btn added" tabIndex={-1}>
+                          <CheckCircleFill /> Added to bag
+                        </button>
+                      ) : isInCart(item.id) ? (
                         <Link to="/cart" className="wl-btn outline">
                           <Cart3 /> Go to Cart
                         </Link>
                       ) : (
-                        <button type="button" className="wl-btn" onClick={() => moveToBag(item)}>
+                        <button type="button" className="wl-btn" onClick={(e) => moveToBag(item, e)}>
                           <Handbag /> Move to Bag
                         </button>
                       )}
@@ -196,11 +289,22 @@ function Wishlist() {
         </Modal.Footer>
       </Modal>
 
-      {/* toast */}
-      <ToastContainer position="bottom-end" className="p-3" style={{ position: "fixed" }}>
-        <Toast show={!!toast} onClose={() => setToast(null)} delay={2500} autohide bg="dark">
+      {selected && <ProductDetails key={selected.id} product={selected} onHide={() => setSelectedId(null)} />}
+
+      {/* toast (wrapped in ToastContainer so it uses the .toast-pos position) */}
+      <ToastContainer className="toast-pos">
+        <Toast show={!!toast} onClose={() => setToast(null)} delay={4000} autohide bg="dark">
           <Toast.Body className="text-white d-flex justify-content-between align-items-center gap-3">
             <span>{toast?.msg}</span>
+            {toast?.undo && (
+              <button
+                type="button"
+                className="wl-toast-link"
+                onClick={() => { toggleWishlist(toast.undo); setToast(null); }}
+              >
+                Undo
+              </button>
+            )}
             {toast?.link && <Link to="/cart" className="wl-toast-link">View cart</Link>}
           </Toast.Body>
         </Toast>

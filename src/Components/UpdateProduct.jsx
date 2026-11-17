@@ -18,48 +18,68 @@ function toDataUrl(file) {
     })
 }
 
-function UpdateProduct({product}) {
+// 1) wrapper: finds the product from the URL
+function UpdateProduct() {
+    const { id } = useParams()
+    const { products } = useproducts()
+
+    const product = products.find((p) => String(p.id) === id)
+
+    // opened from the header link (/update) with no id
+    if (!id) {
+        return (
+            <div>
+                <Header />
+                <div className="col-sm-8 col-lg-5 offset-sm-2 offset-lg-3 login-card text-center">
+                    <h1 className="login-title">Edit Product</h1>
+                    <p className="login-subtitle">Pick a product from the list and click its pencil icon.</p>
+                    <Link to="/" className="btn login-btn">Go to products</Link>
+                </div>
+            </div>
+        )
+    }
+
+    if (!product) {
+        return (
+            <div>
+                <Header />
+                <div className="col-sm-8 col-lg-5 offset-sm-2 offset-lg-3 login-card text-center">
+                    <h1 className="login-title">Product not found</h1>
+                    <p className="login-subtitle">It may have been deleted.</p>
+                    <Link to="/" className="btn login-btn">Back to products</Link>
+                </div>
+            </div>
+        )
+    }
+
+    // key resets the form if you switch to a different product
+    return <EditForm key={product.id} product={product} />
+}
+
+// 2) the form: your existing code, now always receives a real product
+function EditForm({ product }) {
     const { setProducts } = useproducts()
     const navigate = useNavigate()
     const fileInput = useRef(null)
 
-    const [data, setData] = useState([])
-    const [name, setName] = useState(product?.title ?? "")
+    const [name, setName] = useState(product.title ?? "")
     const [file, setFile] = useState(null)
-    const [price, setPrice] = useState(String(product?.price ?? ""))
-    const [description, setDescription] = useState(product?.description ?? "")
+    const [price, setPrice] = useState(String(product.price ?? ""))
+    const [description, setDescription] = useState(product.description ?? "")
     const [loading, setLoading] = useState(false)
     const [preview, setPreview] = useState("")
     const [dragging, setDragging] = useState(false)
     const [errors, setErrors] = useState({})
 
-    const currentImage = product?.images?.[0] || product?.thumbnail || ""
+    const currentImage = product.images?.[0] || product.thumbnail || ""
     const shownImage = preview || currentImage
-
 
     // enable Save only when something actually changed
     const changed =
-        name.trim() !== (product?.title ?? "") ||
-        Number(price) !== Number(product?.price) ||
-        description.trim() !== (product?.description ?? "").trim() ||
+        name.trim() !== (product.title ?? "") ||
+        Number(price) !== Number(product.price) ||
+        description.trim() !== (product.description ?? "").trim() ||
         file !== null
-
-    // useEffect(() => {
-    //     const updateProduct = async () => {
-    //         try {
-    //             let result = await fetch(`https://dummyjson.com/products/${params.id}`)
-    //             const response = await result.json()
-    //             setData(response)
-    //             setName(response.title)
-    //             setPrice(response.price)
-    //             setDescription(response.description)
-    //             // setFile(response.images?.[0])
-    //         } catch (error) {
-    //             alert("Failed to load product");
-    //         }
-    //     }
-    //     updateProduct()
-    // }, [params.id])
 
     // preview of a newly chosen image, freed when it changes or the page closes
     useEffect(() => {
@@ -82,8 +102,8 @@ function UpdateProduct({product}) {
             setErrors((prev) => ({ ...prev, file: "Image must be under 1 MB" }))
             return
         }
+        setErrors((prev) => ({ ...prev, file: undefined }))
         setFile(selected)
-        // clearError("file")
     }
 
     function undoNewImage() {
@@ -99,44 +119,20 @@ function UpdateProduct({product}) {
         if (!price) newErrors.price = "Price is required"
         else if (isNaN(Number(price)) || Number(price) <= 0) newErrors.price = "Enter a valid price greater than 0"
 
-        if (!file) newErrors.file = "Please upload a product image"
+        // an image is only required if the product has none at all
+        if (!file && !currentImage) newErrors.file = "Please upload a product image"
 
         setErrors(newErrors)
         return Object.keys(newErrors).length === 0
-
     }
+
     async function handleSubmit(e) {
         e.preventDefault()
         if (!validateForm()) return
 
-        // console.log({name,file,price,description})
-        // const formData = new FormData()
-        // formData.append("file", file.name)
-        // formData.append("name", name)
-        // formData.append("price", price)
-        // formData.append("description", description)
-        // formData.append("id", id)
-
         setLoading(true)
-
         try {
             const images = file ? [await toDataUrl(file)] : product.images
-            // let result = await fetch(`https://dummyjson.com/products/${id}`, {
-            //     method: "PUT",
-            //     headers: {
-            //         "Content-Type": "application/json",
-            //     },
-            //     body: JSON.stringify(formData),                 // no Content-Type header
-            // })
-            // const data = await result.json()
-
-            // const updatedProduct = {
-            //     id: id,
-            //     title: name,
-            //     price: Number(price),
-            //     description: description,
-            //     images: file ? [URL.createObjectURL(file)] : data.images,
-            // }
 
             setProducts((prev) =>
                 prev.map((p) =>
@@ -147,11 +143,12 @@ function UpdateProduct({product}) {
             )
             navigate("/")
         } catch (err) {
-            alert("Failed to add product")
+            alert("Failed to update product")
         } finally {
             setLoading(false)
         }
     }
+
     return (
         <div>
             <Header />
@@ -247,4 +244,5 @@ function UpdateProduct({product}) {
         </div>
     )
 }
+
 export default UpdateProduct

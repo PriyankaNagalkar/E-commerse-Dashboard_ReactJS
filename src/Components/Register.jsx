@@ -16,6 +16,35 @@ function getStrength(p) {
 const strengthLabels = ["", "Weak", "Fair", "Good", "Strong"]
 const strengthColors = ["", "#dc3545", "#c15d0c", "#b2890c", "#08502e"]
 
+function PasswordInput({ label, value, onChange, error }) {
+    const [show, setShow] = useState(false)
+
+    return (
+        <>
+            <div className={`pw-field ${error ? "has-error" : ""}`}>
+                <FloatingLabel label={label}>
+                    <Form.Control
+                        type={show ? "text" : "password"}
+                        placeholder={label}
+                        autoComplete="new-password"
+                        value={value}
+                        onChange={onChange}
+                    />
+                </FloatingLabel>
+                <button
+                    type="button"
+                    className="pw-eye"
+                    onClick={() => setShow((s) => !s)}
+                    aria-label={show ? "Hide password" : "Show password"}
+                >
+                    {show ? <EyeSlash /> : <Eye />}
+                </button>
+            </div>
+            {error && <div className="text-danger mt-1 error-msg">{error}</div>}
+        </>
+    )
+}
+
 function Register() {
     const [firstName, setName] = useState("");
     const [password, setPassword] = useState("");
@@ -25,6 +54,7 @@ function Register() {
     const [apiError, setApiError] = useState("")
     const [loading, setLoading] = useState(false)
     const [showPassword, setShowPassword] = useState(false)
+    const [showConfirmPassword, setShowConfirmPassword] = useState(false)
 
     const navigate = useNavigate();
 
@@ -40,45 +70,41 @@ function Register() {
         if (!firstName.trim()) {
             newErrors.firstName = "FirstName is required"
             validation = false;
-        }
-        if (firstName.trim().length < 3) {
+        }else if (firstName.trim().length < 3) {
             newErrors.firstName = "Name must be at least 3 characters"
             validation = false;
         }
-        if (!password.trim()) {
-            newErrors.password = "Password is required"
-            validation = false;
-        }
+       
         if (!email.trim()) {
             newErrors.email = "Email is required"
             validation = false;
-        }
-        if (!/^\S+@\S+\.\S+$/.test(email.trim())) {
+        }else if (!/^\S+@\S+\.\S+$/.test(email.trim())) {
             newErrors.email = "Enter a valid email address"
             validation = false;
         }
-        if (password.length < 8) {
+
+        if (!password.trim()) {
+            newErrors.password = "Password is required"
+            validation = false;
+        }else if (password.length < 8) {
             newErrors.password = "Password must be at least 8 characters"
             validation = false;
-        }
-        if (!/[A-Z]/.test(password)) {
+        }else if (!/[A-Z]/.test(password)) {
             newErrors.password = "Add at least one uppercase letter"
             validation = false;
-        }
-        if (!/\d/.test(password)) {
+        }else if (!/\d/.test(password)) {
             newErrors.password = "Add at least one number"
             validation = false;
-        }
-        if (!/[^A-Za-z0-9]/.test(password)) {
+        }else if (!/[^A-Za-z0-9]/.test(password)) {
             newErrors.password = "Add at least one special character (!@#$%)"
             validation = false;
         }
+
         if (!confirmPassword.trim()) {
             newErrors.confirmPassword = "You need to confirm your password"
             validation = false;
-        }
-        if (password.length !== confirmPassword.length && password !== confirmPassword) {
-            newErrors.confirmPassword = "Your Password should match"
+        }else if (password.length !== confirmPassword.length && password !== confirmPassword) {
+            newErrors.confirmPassword = "Passwords don't match yet"
             validation = false;
         }
         setErrors(newErrors)
@@ -128,7 +154,7 @@ function Register() {
             <Header />
             <div className="col-sm-6 offset-sm-3 login-card">
                 <h1 className="login-title">Create Account</h1>
-                <p className="login-subtitle">Join My Store and start shopping</p>
+                <p className="login-subtitle">Join My GlowStore and start shopping</p>
 
                 <form onSubmit={handleSubmit}>
                     <input type="text" className="form-control" value={firstName} onChange={(e) => setName(e.target.value)} placeholder="Enter Your Name" />
@@ -146,9 +172,9 @@ function Register() {
                     {errors.password && <div className="text-danger text-start mt-1 error-msg">{errors.password}</div>}
                     <br />
                     <div className="confirm-group">
-                        <input type={showPassword ? "text" : "password"} className="form-control" value={confirmPassword} onChange={(e) => setconfirmPassword(e.target.value)} placeholder="Confirm Your Password" />
-                        <button type="button" className="btn btn-outline-secondary eyeBtn" onClick={() => setShowPassword((s) => !s)} aria-label={showPassword ? "Hide password" : "Show password"}>
-                            {showPassword ? <EyeSlash /> : <Eye />}
+                        <input type={showConfirmPassword ? "text" : "password"} className="form-control" value={confirmPassword} onChange={(e) => setconfirmPassword(e.target.value)} placeholder="Confirm Your Password" />
+                        <button type="button" className="btn btn-outline-secondary eyeBtn" onClick={() => setShowConfirmPassword((s) => !s)} aria-label={showConfirmPassword ? "Hide password" : "Show password"}>
+                            {showConfirmPassword ? <EyeSlash /> : <Eye />}
                         </button>
                         <br />
                     </div>

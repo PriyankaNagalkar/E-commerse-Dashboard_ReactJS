@@ -222,6 +222,12 @@ function Cart() {
                     <div className="ct-info">
                       {item.category && <span className="wl-category">{item.category}</span>}
                       <h3 className="ct-title">{item.title}</h3>
+                      {item.selectedColor && (
+                        <small className="ct-shade">
+                          <span className="dot" style={{ background: item.selectedColor.hex }} />
+                          {item.selectedColor.name}
+                        </small>
+                      )}
 
                       <div className="ct-price">
                         <span className="now">${price.toFixed(2)}</span>

@@ -88,7 +88,6 @@ function Header() {
                         {user ? (
                             <>
                                 <Nav.Link as={NavLink} to="/" end>Shop</Nav.Link>
-                                <Nav.Link as={NavLink} to="/search">Search</Nav.Link>
                                 <NavDropdown title="Manage" id="manage-dropdown">
                                     <NavDropdown.Item as={Link} to="/add">
                                         <PlusCircle className="me-2" />Add Product
