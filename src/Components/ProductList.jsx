@@ -410,6 +410,14 @@ function ProductList() {
                 contentClassName="del-content"
             >
                 <Modal.Body className="del-body">
+                    <button
+                        type="button"
+                        className="del-close"
+                        aria-label="Close"
+                        onClick={() => setToDelete(null)}
+                    >
+                        ×
+                    </button>
                     <div className="del-head">
                         <div className="del-icon"><Trash /></div>
                         <h4>Delete this product?</h4>

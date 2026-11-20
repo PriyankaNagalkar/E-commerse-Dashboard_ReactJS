@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { Button, Modal, Spinner } from "react-bootstrap";
+import { Button, Modal, Spinner, Toast, ToastContainer } from "react-bootstrap";
 import {
   Dash, Plus, Trash, Heart, Truck, TagFill, X,
   CheckCircleFill, ShieldCheck, Cart3,
@@ -9,6 +9,10 @@ import { useproducts } from "../Context/ProductContext";
 import { useInfiniteScroll } from "../hooks/useInfiniteScroll";
 import { useCountUp } from "../hooks/useCountUp";
 import Header from "./Header";
+import ProductDetails from "./ProductDetails";
+import RecommendedProducts from "./RecommendedProducts";
+import { useNavigate } from "react-router-dom";
+import { calcTotals } from "../utils/pricing";
 
 const FREE_DELIVERY_AT = 50;
 const DELIVERY_FEE = 4.99;
@@ -19,7 +23,7 @@ function Cart() {
   const {
     cart, cartCount, updateCartQuantity, removeFromCart,
     toggleWishlist, isWished, orders,
-    setOrders,
+    setOrders, products,
   } = useproducts();
 
   const [removingId, setRemovingId] = useState(null);
@@ -30,10 +34,16 @@ function Cart() {
   const [ordered, setOrdered] = useState(false);
   const [unselected, setUnselected] = useState(() => new Set());
   const [placing, setPlacing] = useState(false);
+  const [lastOrder, setLastOrder] = useState(null);
+  const [toast, setToast] = useState(null);
+  const [selectedId, setSelectedId] = useState(null);
+
+  const selected = products.find((p) => p.id === selectedId) || cart.find((p) => p.id === selectedId);
 
   const { visibleItems, hasMore, loadingMore, sentinelRef } =
     useInfiniteScroll(cart, PAGE_SIZE, "", 0);
 
+  const navigate = useNavigate();
 
   // every total is calculated from the FULL cart, not from visibleItems
   const selectedItems = useMemo(
@@ -45,28 +55,7 @@ function Cart() {
   const noneSelected = selectedItems.length === 0;
 
   // every total is calculated from the SELECTED items only
-  const t = useMemo(() => {
-    let mrp = 0;
-    let subtotal = 0;
-    selectedItems.forEach((i) => {
-      const price = Number(i.price || 0);
-      const d = Number(i.discountPercentage || 0);
-      const original = d > 0 && d < 100 ? price / (1 - d / 100) : price;
-      mrp += original * i.quantity;
-      subtotal += price * i.quantity;
-    });
-    const couponOff = coupon ? (subtotal * coupon.percent) / 100 : 0;
-    const afterCoupon = subtotal - couponOff;
-    const delivery = noneSelected || afterCoupon >= FREE_DELIVERY_AT ? 0 : DELIVERY_FEE;
-    return {
-      mrp, subtotal, couponOff, delivery,
-      productDiscount: mrp - subtotal,
-      total: afterCoupon + delivery,
-      saved: mrp - subtotal + couponOff,
-      remaining: Math.max(0, FREE_DELIVERY_AT - afterCoupon),
-      progress: Math.min(100, (afterCoupon / FREE_DELIVERY_AT) * 100),
-    };
-  }, [selectedItems, coupon, noneSelected]);
+  const t = useMemo(() => calcTotals(selectedItems, coupon?.percent || 0), [selectedItems, coupon]);
 
   const animatedTotal = useCountUp(t.total);
 
@@ -88,19 +77,26 @@ function Cart() {
     setShowClear(false);
   }
 
-  function removeWithAnimation(id) {
-    setRemovingId(id);
+  // takes the item (not the id), so Undo can restore it
+  function removeWithAnimation(item, toastData = { msg: `"${item.title}" removed`, undo: item }) {
+    setRemovingId(item.id);
     setTimeout(() => {
-      removeFromCart(id);
+      removeFromCart(item.id);
       setRemovingId(null);
+      setToast(toastData);
     }, 300);
+  }
+
+  function undoRemove(item) {
+    addToCart(item);                                          // comes back with quantity 1...
+    if (item.quantity > 1) updateCartQuantity(item.id, item.quantity - 1);   // ...then restores the old amount
+    setToast(null);
   }
 
   function saveForLater(item) {
     if (!isWished(item.id)) toggleWishlist(item);
-    removeWithAnimation(item.id);
+    removeWithAnimation(item, { msg: "Saved to your wishlist" });
   }
-
   function applyCoupon() {
     const code = couponInput.trim().toUpperCase();
     if (COUPONS[code]) {
@@ -114,31 +110,42 @@ function Cart() {
 
   function closeOrder() {
     setOrdered(false);
-    selectedItems.forEach((i) => removeFromCart(i.id));   // unticked items stay in the cart
-    setCoupon(null);
+    // selectedItems.forEach((i) => removeFromCart(i.id));   // unticked items stay in the cart
+    // setCoupon(null);
   }
 
-  function placeOrder() {
-    setPlacing(true);
+  // function placeOrder() {
+  //   setPlacing(true);
 
-    setTimeout(() => {
-      const newOrder = {
-        id: String(Date.now()),
-        date: new Date().toISOString(),
-        items: selectedItems.map((item) => ({ ...item })),
-        total: t.total,
-        saved: t.saved,
-        delivery: t.delivery,
-        couponCode: coupon?.code || null,
-        status: "Placed",
-      };
+  //   setTimeout(() => {
+  //     const newOrder = {
+  //       id: String(Date.now()),
+  //       date: new Date().toISOString(),
+  //       items: selectedItems.map((item) => ({ ...item })),
+  //       total: t.total,
+  //       saved: t.saved,
+  //       delivery: t.delivery,
+  //       couponCode: coupon?.code || null,
+  //       status: "Placed",
+  //     };
 
-      setOrders((prev) => [...prev, newOrder]);
+  //     setOrders((prev) => [newOrder, ...prev]);
+  //     selectedItems.forEach((i) => removeFromCart(i.id));
+  //     setLastOrder(newOrder);
+  //     setCoupon(null);
+  //     setPlacing(false);
+  //     setOrdered(true);
+  //   }, 1200);
+  // }
 
-      setPlacing(false);
-      setOrdered(true);
-    }, 1200);
+  function goToCheckout() {
+    navigate("/checkout", { state: { ids: selectedItems.map((i) => i.id), coupon } });
   }
+  const arrivalDate = (from = new Date(), days = 5) => {
+    const d = new Date(from);
+    d.setDate(d.getDate() + days);
+    return d.toLocaleDateString("en-US", { weekday: "short", day: "numeric", month: "short" });
+  };
 
   return (
     <>
@@ -207,6 +214,7 @@ function Cart() {
                     key={item.id}
                     className={`ct-item ${checked ? "" : "unchecked"} ${removingId === item.id ? "leaving" : ""}`}
                     style={{ "--i": Math.min(index, 10) }}
+                    onClick={(e) => { if (!e.target.closest("button, a, input, label")) setSelectedId(item.id); }}
                   >
                     <input
                       type="checkbox"
@@ -240,7 +248,7 @@ function Cart() {
                           type="button"
                           aria-label={item.quantity === 1 ? "Remove item" : "Decrease quantity"}
                           onClick={() =>
-                            item.quantity === 1 ? removeWithAnimation(item.id) : updateCartQuantity(item.id, -1)
+                            item.quantity === 1 ? removeWithAnimation(item) : updateCartQuantity(item.id, -1)
                           }
                         >
                           {item.quantity === 1 ? <Trash /> : <Dash />}
@@ -264,7 +272,7 @@ function Cart() {
                         <button type="button" onClick={() => saveForLater(item)}>
                           <Heart /> Save for later
                         </button>
-                        <button type="button" className="danger" onClick={() => removeWithAnimation(item.id)}>
+                        <button type="button" className="danger" onClick={() => removeWithAnimation(item)}>
                           <X /> Remove
                         </button>
                       </div>
@@ -303,8 +311,18 @@ function Cart() {
                           onKeyDown={(e) => e.key === "Enter" && applyCoupon()}
                         />
                         <button type="button" onClick={applyCoupon} disabled={!couponInput.trim()}>Apply</button>
-                      </div>
+                      </div>   {/* the input row ends HERE */}
+
                       {couponError && <small className="ct-warn">{couponError}</small>}
+
+                      {/* ⬇️ the hint goes AFTER the row, not inside it */}
+                      <button
+                        type="button"
+                        className="ct-coupon-hint"
+                        onClick={() => setCoupon({ code: "GLOW10", percent: COUPONS.GLOW10 })}
+                      >
+                        🏷️ Use <strong>GLOW10</strong> for 10% off
+                      </button>
                     </>
                   )}
                 </div>
@@ -326,25 +344,20 @@ function Cart() {
                   <div className="ct-save">You'll save ${t.saved.toFixed(2)} on this order 🎉</div>
                 )}
 
-                <button
-                  type="button"
-                  className="ct-order-btn"
-                  disabled={noneSelected || placing}
-                  onClick={placeOrder}
-                >
-                  {placing ? (
-                    <><Spinner animation="border" size="sm" /> Placing order...</>
-                  ) : noneSelected ? (
-                    "Select items to order"
-                  ) : (
-                    `Place Order (${selectedQty})`
-                  )}
+                <button type="button" className="ct-order-btn" disabled={noneSelected} onClick={goToCheckout}>
+                  {noneSelected ? "Select items to order" : `Proceed to Checkout (${selectedQty})`}
                 </button>
+                <p className="ct-eta"><Truck /> Delivery by <strong>{arrivalDate()}</strong></p>
                 <p className="ct-secure"><ShieldCheck /> Safe and secure payments</p>
               </aside>
             </div>
           </div>
         )}
+        <RecommendedProducts
+          basedOn={cart}
+          exclude={cart.map((i) => i.id)}
+          onOpen={setSelectedId}
+        />
       </div>
 
       {/* clear cart */}
@@ -364,11 +377,31 @@ function Cart() {
         <Modal.Body className="ct-success text-center">
           <CheckCircleFill className="ct-success-icon" />
           <h4>Order placed!</h4>
-          <p>Thank you for shopping with GlowStore.</p>
+
+          {lastOrder && (
+            <div className="ct-order-info">
+              <p>Order ID <strong>{lastOrder.id}</strong></p>
+              <p>Total <strong>${lastOrder.total.toFixed(2)}</strong></p>
+              <p>Arriving by <strong>{arrivalDate(lastOrder.date)}</strong></p>
+            </div>
+          )}
+
           <Link to="/" className="wl-btn wl-btn-inline" onClick={closeOrder}>Continue shopping</Link>
           <Link to="/orders" className="wl-link d-block mt-3" onClick={closeOrder}>View my orders</Link>
         </Modal.Body>
+        <ToastContainer className="toast-pos">
+          <Toast show={!!toast} onClose={() => setToast(null)} delay={4000} autohide bg="dark">
+            <Toast.Body className="text-white d-flex justify-content-between align-items-center gap-3">
+              <span>{toast?.msg}</span>
+              {toast?.undo && (
+                <button type="button" className="wl-toast-link" onClick={() => undoRemove(toast.undo)}>Undo</button>
+              )}
+            </Toast.Body>
+          </Toast>
+        </ToastContainer>
       </Modal>
+
+      {selected && <ProductDetails key={selected.id} product={selected} onHide={() => setSelectedId(null)} />}
     </>
   );
 }

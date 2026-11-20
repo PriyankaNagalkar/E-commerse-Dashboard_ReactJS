@@ -1,12 +1,13 @@
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Spinner } from "react-bootstrap";
+import { Modal, Spinner } from "react-bootstrap";
 import {
-    Search, BoxSeam, ChevronDown, ArrowRepeat, CheckCircleFill,
+    Search, BoxSeam, ChevronDown, ArrowRepeat, CheckCircleFill, XCircleFill
 } from "react-bootstrap-icons";
 import { useproducts } from "../Context/ProductContext";
 import { useInfiniteScroll } from "../hooks/useInfiniteScroll";
 import Header from "./Header";
+import { useCountUp } from "../hooks/useCountUp";
 
 const PAGE_SIZE = 5;
 const STEPS = ["Placed", "Packed", "Shipped", "Delivered"];
@@ -27,27 +28,47 @@ const fmtDate = (d, opts) =>
     new Date(d).toLocaleDateString("en-US", opts || { day: "numeric", month: "short", year: "numeric" });
 
 function Orders() {
-    const { orders, addToCart, updateCartQuantity } = useproducts();
+    const { orders, setOrders, addToCart, updateCartQuantity } = useproducts();
     const navigate = useNavigate();
+    const cancelSnap = useRef(null);
 
     const [query, setQuery] = useState("");
     const [filter, setFilter] = useState("all");          // all | progress | delivered
     const [openId, setOpenId] = useState(null);
+    const [cancelId, setCancelId] = useState(null);
 
-    const stats = useMemo(() => ({
-        count: orders?.length,
-        spent: orders?.reduce((s, o) => s + Number(o.total || 0), 0),
-        saved: orders?.reduce((s, o) => s + Number(o.saved || 0), 0),
-    }), [orders]);
+    const stats = useMemo(() => {
+        const active = orders.filter((o) => o.status !== "Cancelled");
+        return {
+            count: active.length,
+            spent: active.reduce((s, o) => s + Number(o.total || 0), 0),
+            saved: active.reduce((s, o) => s + Number(o.saved || 0), 0),
+        };
+    }, [orders]);
+
+    const spent = useCountUp(stats.spent);
+    const saved = useCountUp(stats.saved);
+    const count = Math.round(useCountUp(stats.count));
+
+    if (cancelId) cancelSnap.current = orders.find((o) => o.id === cancelId) || cancelSnap.current;
+    const snap = cancelSnap.current;
+
+    function cancelOrder() {
+        setOrders((prev) =>
+            prev.map((o) => (o.id === cancelId ? { ...o, status: "Cancelled", cancelledAt: new Date().toISOString() } : o))
+        );
+        setCancelId(null);
+    }
 
     const filtered = useMemo(() => {
         const q = query.trim().toLowerCase();
 
         return (orders || []).filter((o) => {
-            const delivered = getStep(o.date) === 3;
-
-            if (filter === "progress" && delivered) return false;
+            const cancelled = o.status === "Cancelled";
+            const delivered = !cancelled && getStep(o.date) === 3;
+            if (filter === "progress" && (delivered || cancelled)) return false;
             if (filter === "delivered" && !delivered) return false;
+            if (filter === "cancelled" && !cancelled) return false;
 
             if (!q) return true;
 
@@ -96,9 +117,9 @@ function Orders() {
                     <>
                         {/* stats */}
                         <div className="or-stats">
-                            <div className="or-stat"><span>{stats.count}</span><small>orders</small></div>
-                            <div className="or-stat"><span>${stats.spent?.toFixed(2)}</span><small>Total spent</small></div>
-                            <div className="or-stat green"><span>${stats.saved?.toFixed(2)}</span><small>Total saved</small></div>
+                            <div className="or-stat"><span>{count}</span><small>{stats.count === 1 ? "order" : "orders"}</small></div>
+                            <div className="or-stat"><span>${spent.toFixed(2)}</span><small>Total spent</small></div>
+                            <div className="or-stat green"><span>${saved.toFixed(2)}</span><small>Total saved</small></div>
                         </div>
 
                         {/* toolbar */}
@@ -131,14 +152,16 @@ function Orders() {
 
                         {/* order cards */}
                         {visibleItems?.map((order, index) => {
+                            const cancelled = order.status === "Cancelled";
                             const step = getStep(order.date);
-                            const delivered = step === 3;
+                            const delivered = !cancelled && step === 3;
+                            const canCancel = !cancelled && step < 2;
                             const open = openId === order.id;
                             const units = order.items.reduce((s, i) => s + i.quantity, 0);
                             const eta = new Date(new Date(order.date).getTime() + 5 * DAY);
 
                             return (
-                                <div key={order.id} className="or-card" style={{ "--i": Math.min(index, 8) }}>
+                                <div key={order.id} className={`or-card ${cancelled ? "is-cancelled" : ""}`} style={{ "--i": Math.min(index, 8) }}>
                                     {/* header */}
                                     <div className="or-head">
                                         <div>
@@ -146,27 +169,36 @@ function Orders() {
                                             <small>Placed on {fmtDate(order.date)}</small>
                                         </div>
                                         <div className="or-head-right">
-                                            <span className={`or-badge ${delivered ? "done" : ""}`}>
-                                                {delivered ? <><CheckCircleFill /> Delivered</> : STEPS[step]}
+                                            <span className={`or-badge ${cancelled ? "cancelled" : delivered ? "done" : ""}`}>
+                                                {cancelled ? "Cancelled" : delivered ? <><CheckCircleFill /> Delivered</> : STEPS[step]}
                                             </span>
                                             <strong className="or-total">${Number(order.total).toFixed(2)}</strong>
                                         </div>
                                     </div>
 
                                     {/* timeline */}
-                                    <ol className="or-steps" style={{ "--step": step }}>
-                                        {STEPS.map((label, i) => (
-                                            <li key={label} className={i < step ? "done" : i === step ? "current" : ""}>
-                                                <span className="dot">{i <= step ? "✓" : ""}</span>
-                                                <span className="label">{label}</span>
-                                            </li>
-                                        ))}
-                                    </ol>
-                                    <p className="or-eta">
-                                        {delivered
-                                            ? `Delivered on ${fmtDate(eta, { weekday: "short", day: "numeric", month: "short" })}`
-                                            : `Arriving by ${fmtDate(eta, { weekday: "short", day: "numeric", month: "short" })}`}
-                                    </p>
+                                    {cancelled ? (
+                                        <p className="or-cancelled">
+                                            This order was cancelled{order.cancelledAt && ` on ${fmtDate(order.cancelledAt)}`}.
+                                        </p>
+                                    ) : (
+                                        <>
+                                            <ol className="or-steps" style={{ "--step": step }}>
+                                                {STEPS.map((label, i) => (
+                                                    <li key={label} className={i < step ? "done" : i === step ? "current" : ""}>
+                                                        <span className="dot">{i <= step ? "✓" : ""}</span>
+                                                        <span className="label">{label}</span>
+                                                    </li>
+                                                ))}
+                                            </ol>
+                                            <p className="or-eta">
+                                                {delivered
+                                                    ? `Delivered on ${fmtDate(eta, { weekday: "short", day: "numeric", month: "short" })}`
+                                                    : `Arriving by ${fmtDate(eta, { weekday: "short", day: "numeric", month: "short" })}`}
+                                            </p>
+                                        </>
+                                    )}
+
 
                                     {/* thumbnails */}
                                     <div className="or-thumbs">
@@ -184,9 +216,14 @@ function Orders() {
                                         <button type="button" className="or-toggle" onClick={() => setOpenId(open ? null : order.id)} aria-expanded={open}>
                                             {open ? "Hide details" : "View details"} <ChevronDown className={open ? "flip" : ""} />
                                         </button>
-                                        <button type="button" className="or-again" onClick={() => buyAgain(order)}>
-                                            <ArrowRepeat /> Buy again
-                                        </button>
+                                        <div className="or-btns">
+                                            {canCancel && (
+                                                <button type="button" className="or-cancel" onClick={() => setCancelId(order.id)}>Cancel order</button>
+                                            )}
+                                            <button type="button" className="or-again" onClick={() => buyAgain(order)}>
+                                                <ArrowRepeat /> Buy again
+                                            </button>
+                                        </div>
                                     </div>
 
                                     {/* expandable details */}
@@ -203,6 +240,14 @@ function Orders() {
                                                 </div>
                                             ))}
 
+                                            {order.address && (
+                                                <div className="or-addr">
+                                                    <strong>Delivering to</strong>
+                                                    <span>{order.address.fullName} · {order.address.phone}</span>
+                                                    <span>{order.address.line1}, {order.address.city}, {order.address.state} {order.address.zip}</span>
+                                                    <small>{order.payment === "cod" ? "Cash on delivery" : "Paid online (demo)"}</small>
+                                                </div>
+                                            )}
                                             <div className="or-sum">
                                                 {order.couponCode && <div><span>Coupon ({order.couponCode})</span><span className="green">applied</span></div>}
                                                 <div>
@@ -233,6 +278,34 @@ function Orders() {
                                 <Spinner animation="border" size="sm" /> Loading more orders...
                             </div>
                         )}
+
+                        <Modal show={!!cancelId} onHide={() => setCancelId(null)} centered dialogClassName="del-dialog" contentClassName="del-content">
+                            <Modal.Body className="del-body">
+                                <button type="button" className="del-close" aria-label="Close" onClick={() => setCancelId(null)}>×</button>
+
+                                <div className="del-head">
+                                    <div className="del-icon"><XCircleFill /></div>
+                                    <h4>Cancel this order?</h4>
+                                </div>
+
+                                {snap && (
+                                    <>
+                                        <div className="del-thumbs">
+                                            {snap.items.slice(0, 5).map((i) => (
+                                                <img key={i.id} src={i.images?.[0] || i.thumbnail} alt="" title={i.title} />
+                                            ))}
+                                            {snap.items.length > 5 && <span className="more">+{snap.items.length - 5}</span>}
+                                        </div>
+                                        <p>Order <strong>#{snap.id}</strong> (${Number(snap.total).toFixed(2)}) will be cancelled.</p>
+                                    </>
+                                )}
+
+                                <div className="del-actions">
+                                    <button type="button" className="del-cancel" onClick={() => setCancelId(null)}>Keep order</button>
+                                    <button type="button" className="del-confirm" onClick={cancelOrder}>Cancel order</button>
+                                </div>
+                            </Modal.Body>
+                        </Modal>
                     </>
                 )}
             </div>

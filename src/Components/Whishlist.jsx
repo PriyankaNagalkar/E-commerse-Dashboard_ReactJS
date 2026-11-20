@@ -1,14 +1,15 @@
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { Button, Modal, Spinner, Toast, ToastContainer } from "react-bootstrap";
 import {
   X, Handbag, HeartFill, Heart, StarFill, Cart3, BagCheck,
-  CheckCircleFill, HeartbreakFill,                                   // NEW
+  CheckCircleFill, HeartbreakFill, Trash,                                   // NEW
 } from "react-bootstrap-icons";
 import { useproducts } from "../Context/ProductContext";
 import { useInfiniteScroll } from "../hooks/useInfiniteScroll";
 import Header from "./Header";
 import ProductDetails from "./ProductDetails";
+import RecommendedProducts from "./RecommendedProducts";
 
 const PAGE_SIZE = 8;
 
@@ -64,7 +65,7 @@ function flyToCart(imgEl) {
 }
 
 function Wishlist() {
-  const { wishlist, products, setWishlist, toggleWishlist, addToCart, isInCart } = useproducts();
+  const { cart, wishlist, products, setWishlist, toggleWishlist, addToCart, isInCart } = useproducts();
   const [category, setCategory] = useState("all");
   const [removingId, setRemovingId] = useState(null);
   const [breakingId, setBreakingId] = useState(null);   // NEW: X turns into a broken heart
@@ -72,6 +73,10 @@ function Wishlist() {
   const [toast, setToast] = useState(null);
   const [showClear, setShowClear] = useState(false);
   const [selectedId, setSelectedId] = useState(null);
+
+  const clearSnap = useRef([]);
+  if (showClear) clearSnap.current = wishlist;
+  const snap = clearSnap.current;
 
   // prefer the live product, so edits show up; fall back to the saved copy
   const selected = products.find((p) => p.id === selectedId) || wishlist.find((p) => p.id === selectedId);
@@ -277,16 +282,50 @@ function Wishlist() {
             )}
           </>
         )}
+        <RecommendedProducts
+          basedOn={wishlist}
+          exclude={[...wishlist, ...cart].map((i) => i.id)}
+          onOpen={setSelectedId}
+        />
       </div>
 
       {/* clear all confirmation */}
-      <Modal show={showClear} onHide={() => setShowClear(false)} centered>
-        <Modal.Header closeButton><Modal.Title>Clear wishlist?</Modal.Title></Modal.Header>
-        <Modal.Body>All {wishlist.length} saved items will be removed.</Modal.Body>
-        <Modal.Footer>
-          <Button variant="secondary" onClick={() => setShowClear(false)}>Cancel</Button>
-          <Button variant="danger" onClick={clearAll}>Clear all</Button>
-        </Modal.Footer>
+      {/* clear all confirmation */}
+      <Modal
+        show={showClear}
+        onHide={() => setShowClear(false)}
+        centered
+        dialogClassName="del-dialog"
+        contentClassName="del-content"
+      >
+        <Modal.Body className="del-body">
+          <button type="button" className="del-close" aria-label="Close" onClick={() => setShowClear(false)}>
+            ×
+          </button>
+
+          <div className="del-head">
+            <div className="del-icon"><Trash /></div>
+            <h4>Clear your wishlist?</h4>
+          </div>
+
+          <div className="del-thumbs">
+            {snap.slice(0, 5).map((p) => (
+              <img key={p.id} src={p.images?.[0] || p.thumbnail} alt="" title={p.title} />
+            ))}
+            {snap.length > 5 && <span className="more">+{snap.length - 5}</span>}
+          </div>
+
+          <p>
+            All {snap.length} saved item{snap.length !== 1 ? "s" : ""} will be removed from your wishlist.
+          </p>
+
+          <div className="del-actions">
+            <button type="button" className="del-cancel" onClick={() => setShowClear(false)}>Cancel</button>
+            <button type="button" className="del-confirm" onClick={clearAll}>
+              <Trash /> Clear all
+            </button>
+          </div>
+        </Modal.Body>
       </Modal>
 
       {selected && <ProductDetails key={selected.id} product={selected} onHide={() => setSelectedId(null)} />}

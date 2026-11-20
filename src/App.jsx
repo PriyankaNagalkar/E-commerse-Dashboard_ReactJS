@@ -12,6 +12,7 @@ import Profile from './Components/Profile'
 import Whishlist from './Components/Whishlist'
 import Cart from './Components/Cart'
 import Orders from './Components/Orders'
+import Checkout from './Components/CheckOut'
 
 
 import './App.css'
@@ -33,6 +34,7 @@ function App() {
             <Route path='/wishlist' element={<Protected Component={Whishlist} />} />
             <Route path='/cart' element={<Protected Component={Cart} />} />
             <Route path="/orders" element={<Protected Component={Orders}></Protected>} />
+            <Route path='/checkout' element={<Protected Component={Checkout} />} />
             <Route path='/' element={<Protected Component={ProductList} />}></Route>
           </Routes>
         </BrowserRouter>
