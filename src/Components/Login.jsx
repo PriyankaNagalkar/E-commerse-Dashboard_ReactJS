@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react"
 import { Link, useNavigate } from "react-router-dom"
 import Header from "./Header"
-import {Spinner } from "react-bootstrap"
+import { Spinner } from "react-bootstrap"
 import { BoxArrowInRight } from "react-bootstrap-icons"
 import { Eye, EyeSlash } from "react-bootstrap-icons"
 
@@ -20,24 +20,24 @@ function Login() {
         if (!email.trim()) {
             newErrors.email = "Email is required"
             validation = false;
-        }else if (!/^\S+@\S+\.\S+$/.test(email.trim())) {
+        } else if (!/^\S+@\S+\.\S+$/.test(email.trim())) {
             newErrors.email = "Enter a valid email address"
             validation = false;
         }
 
-         if (!password.trim()) {
+        if (!password) {
             newErrors.password = "Password is required"
             validation = false;
-        }else if (password.length < 8) {
+        } else if (password.length < 8) {
             newErrors.password = "Password must be at least 8 characters"
             validation = false;
-        }else if (!/[A-Z]/.test(password)) {
+        } else if (!/[A-Z]/.test(password)) {
             newErrors.password = "Add at least one uppercase letter"
             validation = false;
-        }else if (!/\d/.test(password)) {
+        } else if (!/\d/.test(password)) {
             newErrors.password = "Add at least one number"
             validation = false;
-        }else if (!/[^A-Za-z0-9]/.test(password)) {
+        } else if (!/[^A-Za-z0-9]/.test(password)) {
             newErrors.password = "Add at least one special character (!@#$%)"
             validation = false;
         }
@@ -59,7 +59,11 @@ function Login() {
             })
 
             result = await result.json();
-            localStorage.setItem('user-info', JSON.stringify(result))
+            // localStorage.setItem('user-info', JSON.stringify(result))
+            localStorage.setItem("user-info", JSON.stringify({
+                id: result.id,
+                email: result.email,
+            }))
             navigate("/add")
         } catch (err) {
             setApiError("Network error. Please try again.")

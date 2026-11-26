@@ -40,7 +40,7 @@ function ProductDetails({ product, onHide }) {
 
     // products without their own policy info show the store's
     const storePromises = [
-        { icon: <Truck />, text: "Free delivery on orders over $50" },
+        { icon: <Truck />, text: "Free delivery on orders over ₹50" },
         { icon: <ArrowCounterclockwise />, text: "Easy 7-day returns" },
         { icon: <ShieldCheck />, text: "Safe and secure payments" },
     ]
@@ -109,8 +109,8 @@ function ProductDetails({ product, onHide }) {
                         )}
 
                         <div className="pd-price">
-                            <span className="now">${price.toFixed(2)}</span>
-                            {original && <span className="was">${original.toFixed(2)}</span>}
+                            <span className="now">₹{price.toFixed(2)}</span>
+                            {original && <span className="was">₹{original.toFixed(2)}</span>}
                             {discount > 0 && <span className="off">{discount}% off</span>}
                         </div>
 
@@ -211,7 +211,7 @@ function ProductDetails({ product, onHide }) {
                                     <div className="who">
                                         <strong>{r.reviewerName}</strong>
                                         <Stars value={r.rating} />
-                                        <small>{new Date(r.date).toLocaleDateString("en-US", { day: "numeric", month: "short", year: "numeric" })}</small>
+                                        <small>{new Date(r.date).toLocaleDateString("en-EN", { day: "numeric", month: "short", year: "numeric" })}</small>
                                     </div>
                                     <p>{r.comment}</p>
                                 </div>

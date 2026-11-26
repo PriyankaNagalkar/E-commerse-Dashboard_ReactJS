@@ -153,7 +153,7 @@ function Wishlist() {
           </h1>
           <p className="login-subtitle mb-0">
             {wishlist.length > 0
-              ? `${wishlist.length} saved item${wishlist.length > 1 ? "s" : ""} · worth $${totalValue.toFixed(2)}`
+              ? `${wishlist.length} saved item${wishlist.length > 1 ? "s" : ""} · worth ₹${totalValue.toFixed(2)}`
               : "Save the things you love"}
           </p>
         </div>
@@ -231,7 +231,7 @@ function Wishlist() {
                         <h3 className="wl-title">{item.title}</h3>
 
                         <div className="wl-price">
-                          <span className="now">${Number(item.price).toFixed(2)}</span>
+                          <span className="now">₹{Number(item.price).toFixed(2)}</span>
                           {original && <span className="was">${original.toFixed(2)}</span>}
                         </div>
 

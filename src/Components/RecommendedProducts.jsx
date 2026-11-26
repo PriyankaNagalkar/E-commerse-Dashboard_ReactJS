@@ -41,7 +41,7 @@ function RecommendedProducts({ basedOn = [], exclude = [], onOpen, title = "You 
                         <div className="rec-body">
                             <h5>{p.title}</h5>
                             <div className="rec-meta">
-                                <strong>${Number(p.price).toFixed(2)}</strong>
+                                <strong>₹{Number(p.price).toFixed(2)}</strong>
                                 {p.rating > 0 && <span><StarFill size={11} /> {Number(p.rating).toFixed(1)}</span>}
                             </div>
                             <button type="button" className="rec-add" onClick={() => addToCart(p)}>

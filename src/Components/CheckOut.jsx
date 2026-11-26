@@ -21,7 +21,7 @@ function loadAddress() {
 const arrivalDate = (from = new Date(), days = 5) => {
     const d = new Date(from)
     d.setDate(d.getDate() + days)
-    return d.toLocaleDateString("en-US", { weekday: "short", day: "numeric", month: "short" })
+    return d.toLocaleDateString("en-EN", { weekday: "short", day: "numeric", month: "short" })
 }
 
 // outside Checkout, so the inputs keep focus while typing
@@ -113,7 +113,7 @@ function Checkout() {
                         <p>Thank you for shopping with GlowStore.</p>
                         <div className="ct-order-info">
                             <p>Order ID <strong>{done.id}</strong></p>
-                            <p>Total <strong>${done.total.toFixed(2)}</strong></p>
+                            <p>Total <strong>₹{done.total.toFixed(2)}</strong></p>
                             <p>Arriving by <strong>{arrivalDate(done.date)}</strong></p>
                             <p>
                                 Delivering to <strong>{done.address.fullName}</strong>, {done.address.line1}, {done.address.city}
@@ -188,28 +188,28 @@ function Checkout() {
                                             <span className="t">{i.title}</span>
                                             <small>Qty {i.quantity}</small>
                                         </div>
-                                        <strong>${(i.price * i.quantity).toFixed(2)}</strong>
+                                        <strong>₹{(i.price * i.quantity).toFixed(2)}</strong>
                                     </div>
                                 ))}
                             </div>
 
-                            <div className="ct-row"><span>Price</span><span>${t.mrp.toFixed(2)}</span></div>
+                            <div className="ct-row"><span>Price</span><span>₹{t.mrp.toFixed(2)}</span></div>
                             {t.productDiscount > 0.005 && (
-                                <div className="ct-row green"><span>Discount</span><span>- ${t.productDiscount.toFixed(2)}</span></div>
+                                <div className="ct-row green"><span>Discount</span><span>- ₹{t.productDiscount.toFixed(2)}</span></div>
                             )}
                             {t.couponOff > 0 && (
-                                <div className="ct-row green"><span>Coupon ({coupon.code})</span><span>- ${t.couponOff.toFixed(2)}</span></div>
+                                <div className="ct-row green"><span>Coupon ({coupon.code})</span><span>- ₹{t.couponOff.toFixed(2)}</span></div>
                             )}
                             <div className="ct-row">
                                 <span>Delivery</span>
-                                {t.delivery === 0 ? <span className="free">FREE</span> : <span>${t.delivery.toFixed(2)}</span>}
+                                {t.delivery === 0 ? <span className="free">FREE</span> : <span>₹{t.delivery.toFixed(2)}</span>}
                             </div>
-                            <div className="ct-row ct-total"><span>Total</span><span>${t.total.toFixed(2)}</span></div>
+                            <div className="ct-row ct-total"><span>Total</span><span>₹{t.total.toFixed(2)}</span></div>
 
-                            {t.saved > 0.005 && <div className="ct-save">You'll save ${t.saved.toFixed(2)} on this order 🎉</div>}
+                            {t.saved > 0.005 && <div className="ct-save">You'll save ₹{t.saved.toFixed(2)} on this order 🎉</div>}
 
                             <button type="submit" form="checkout-form" className="ct-order-btn" disabled={placing}>
-                                {placing ? <><Spinner animation="border" size="sm" /> Placing order...</> : `Place Order · $${t.total.toFixed(2)}`}
+                                {placing ? <><Spinner animation="border" size="sm" /> Placing order...</> : `Place Order · ₹${t.total.toFixed(2)}`}
                             </button>
                             <p className="ct-secure"><ShieldCheck /> Safe and secure payments</p>
                             <Link to="/cart" className="wl-link d-block text-center mt-2">Back to cart</Link>

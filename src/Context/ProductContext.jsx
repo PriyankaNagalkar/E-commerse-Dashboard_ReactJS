@@ -6,12 +6,13 @@ export function ProductsProvider({ children }) {
 
     const [products, setProducts] = useState(() => {
         try {
-            const savedProducts = localStorage.getItem("products");
-            return savedProducts ? JSON.parse(savedProducts) : [];
+            const saved = JSON.parse(localStorage.getItem("products") || "[]")
+            const seen = new Set()
+            return saved.filter((p) => !seen.has(p.id) && seen.add(p.id))
         } catch {
-            return [];
+            return []
         }
-    });
+    })
 
     // NEW: Wishlist state
     const [wishlist, setWishlist] = useState(() => {

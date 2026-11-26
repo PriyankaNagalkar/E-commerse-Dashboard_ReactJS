@@ -294,7 +294,7 @@ function ProductList() {
                     <>
                         <Row xs={1} sm={2} lg={3} xl={4} className="g-4">
                             {visibleItems.map((item, index) => {
-                                const qty = cart.find((c) => c.id === item.id)?.qty
+                                const qty = cart.find((c) => c.id === item.id)?.quantity
 
                                 return (
                                     <Col key={item.id}>
@@ -341,7 +341,7 @@ function ProductList() {
 
                                                 <div className="product-footer">
                                                     <div className="price-row">
-                                                        <span className="price">${Number(item.price).toFixed(2)}</span>
+                                                        <span className="price">₹{Number(item.price).toFixed(2)}</span>
                                                         {item.rating > 0 && (
                                                             <span className="rating-pill" title={`${item.rating} out of 5`}>
                                                                 <StarFill size={12} />

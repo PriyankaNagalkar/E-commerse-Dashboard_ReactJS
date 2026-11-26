@@ -1,9 +1,8 @@
 import { useMemo, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Button, Modal, Spinner, Toast, ToastContainer } from "react-bootstrap";
 import {
-  Dash, Plus, Trash, Heart, Truck, TagFill, X,
-  CheckCircleFill, ShieldCheck, Cart3,
+  Dash, Plus, Trash, Heart, Truck, TagFill, X, ShieldCheck, Cart3,
 } from "react-bootstrap-icons";
 import { useproducts } from "../Context/ProductContext";
 import { useInfiniteScroll } from "../hooks/useInfiniteScroll";
@@ -11,19 +10,15 @@ import { useCountUp } from "../hooks/useCountUp";
 import Header from "./Header";
 import ProductDetails from "./ProductDetails";
 import RecommendedProducts from "./RecommendedProducts";
-import { useNavigate } from "react-router-dom";
 import { calcTotals } from "../utils/pricing";
 
-const FREE_DELIVERY_AT = 50;
-const DELIVERY_FEE = 4.99;
 const COUPONS = { GLOW10: 10 };      // code -> percent off
 const PAGE_SIZE = 10;
 
 function Cart() {
   const {
-    cart, cartCount, updateCartQuantity, removeFromCart,
-    toggleWishlist, isWished, orders,
-    setOrders, products,
+    cart, wishlist, cartCount, updateCartQuantity, removeFromCart,
+    toggleWishlist, isWished, addToCart, products,
   } = useproducts();
 
   const [removingId, setRemovingId] = useState(null);
@@ -31,10 +26,7 @@ function Cart() {
   const [coupon, setCoupon] = useState(null);          // { code, percent }
   const [couponError, setCouponError] = useState("");
   const [showClear, setShowClear] = useState(false);
-  const [ordered, setOrdered] = useState(false);
   const [unselected, setUnselected] = useState(() => new Set());
-  const [placing, setPlacing] = useState(false);
-  const [lastOrder, setLastOrder] = useState(null);
   const [toast, setToast] = useState(null);
   const [selectedId, setSelectedId] = useState(null);
 
@@ -108,35 +100,10 @@ function Cart() {
     }
   }
 
-  function closeOrder() {
-    setOrdered(false);
-    // selectedItems.forEach((i) => removeFromCart(i.id));   // unticked items stay in the cart
-    // setCoupon(null);
-  }
-
-  // function placeOrder() {
-  //   setPlacing(true);
-
-  //   setTimeout(() => {
-  //     const newOrder = {
-  //       id: String(Date.now()),
-  //       date: new Date().toISOString(),
-  //       items: selectedItems.map((item) => ({ ...item })),
-  //       total: t.total,
-  //       saved: t.saved,
-  //       delivery: t.delivery,
-  //       couponCode: coupon?.code || null,
-  //       status: "Placed",
-  //     };
-
-  //     setOrders((prev) => [newOrder, ...prev]);
-  //     selectedItems.forEach((i) => removeFromCart(i.id));
-  //     setLastOrder(newOrder);
-  //     setCoupon(null);
-  //     setPlacing(false);
-  //     setOrdered(true);
-  //   }, 1200);
+  // function closeOrder() {
+  //   setOrdered(false);
   // }
+
 
   function goToCheckout() {
     navigate("/checkout", { state: { ids: selectedItems.map((i) => i.id), coupon } });
@@ -144,7 +111,7 @@ function Cart() {
   const arrivalDate = (from = new Date(), days = 5) => {
     const d = new Date(from);
     d.setDate(d.getDate() + days);
-    return d.toLocaleDateString("en-US", { weekday: "short", day: "numeric", month: "short" });
+    return d.toLocaleDateString("en-IN", { weekday: "short", day: "numeric", month: "short" });
   };
 
   return (
@@ -176,7 +143,7 @@ function Cart() {
                 <div className="ct-banner-text">
                   <Truck />
                   {t.remaining > 0 ? (
-                    <span>Add <strong>${t.remaining.toFixed(2)}</strong> more for <strong>free delivery</strong></span>
+                    <span>Add <strong>₹{t.remaining.toFixed(2)}</strong> more for <strong>free delivery</strong></span>
                   ) : (
                     <span>🎉 You've unlocked <strong>free delivery</strong></span>
                   )}
@@ -238,8 +205,8 @@ function Cart() {
                       )}
 
                       <div className="ct-price">
-                        <span className="now">${price.toFixed(2)}</span>
-                        {original && <span className="was">${original.toFixed(2)}</span>}
+                        <span className="now">₹{price.toFixed(2)}</span>
+                        {original && <span className="was">₹{original.toFixed(2)}</span>}
                         {discount > 0 && <span className="off">{discount}% off</span>}
                       </div>
 
@@ -267,7 +234,7 @@ function Cart() {
                     </div>
 
                     <div className="ct-side">
-                      <div className="ct-line">${(price * item.quantity).toFixed(2)}</div>
+                      <div className="ct-line">₹{(price * item.quantity).toFixed(2)}</div>
                       <div className="ct-links">
                         <button type="button" onClick={() => saveForLater(item)}>
                           <Heart /> Save for later
@@ -326,22 +293,22 @@ function Cart() {
                     </>
                   )}
                 </div>
-                <div className="ct-row"><span>Price ({selectedQty} item{selectedQty !== 1 ? "s" : ""})</span><span>${t.mrp.toFixed(2)}</span></div>
+                <div className="ct-row"><span>Price ({selectedQty} item{selectedQty !== 1 ? "s" : ""})</span><span>₹{t.mrp.toFixed(2)}</span></div>
                 {t.productDiscount > 0.005 && (
-                  <div className="ct-row green"><span>Discount</span><span>- ${t.productDiscount.toFixed(2)}</span></div>
+                  <div className="ct-row green"><span>Discount</span><span>- ₹{t.productDiscount.toFixed(2)}</span></div>
                 )}
                 {t.couponOff > 0 && (
-                  <div className="ct-row green"><span>Coupon ({coupon.code})</span><span>- ${t.couponOff.toFixed(2)}</span></div>
+                  <div className="ct-row green"><span>Coupon ({coupon.code})</span><span>- ₹{t.couponOff.toFixed(2)}</span></div>
                 )}
                 <div className="ct-row">
                   <span>Delivery</span>
-                  {t.delivery === 0 ? <span className="free">FREE</span> : <span>${t.delivery.toFixed(2)}</span>}
+                  {t.delivery === 0 ? <span className="free">FREE</span> : <span>₹{t.delivery.toFixed(2)}</span>}
                 </div>
 
-                <div className="ct-row ct-total"><span>Total</span><span>${animatedTotal.toFixed(2)}</span></div>
+                <div className="ct-row ct-total"><span>Total</span><span>₹{animatedTotal.toFixed(2)}</span></div>
 
                 {t.saved > 0.005 && (
-                  <div className="ct-save">You'll save ${t.saved.toFixed(2)} on this order 🎉</div>
+                  <div className="ct-save">You'll save ₹{t.saved.toFixed(2)} on this order 🎉</div>
                 )}
 
                 <button type="button" className="ct-order-btn" disabled={noneSelected} onClick={goToCheckout}>
@@ -355,7 +322,7 @@ function Cart() {
         )}
         <RecommendedProducts
           basedOn={cart}
-          exclude={cart.map((i) => i.id)}
+          exclude={[...wishlist, ...cart].map((i) => i.id)}
           onOpen={setSelectedId}
         />
       </div>
@@ -373,7 +340,7 @@ function Cart() {
       </Modal>
 
       {/* order success */}
-      <Modal show={ordered} onHide={closeOrder} centered>
+      {/* <Modal show={ordered} onHide={closeOrder} centered>
         <Modal.Body className="ct-success text-center">
           <CheckCircleFill className="ct-success-icon" />
           <h4>Order placed!</h4>
@@ -389,19 +356,19 @@ function Cart() {
           <Link to="/" className="wl-btn wl-btn-inline" onClick={closeOrder}>Continue shopping</Link>
           <Link to="/orders" className="wl-link d-block mt-3" onClick={closeOrder}>View my orders</Link>
         </Modal.Body>
-        <ToastContainer className="toast-pos">
-          <Toast show={!!toast} onClose={() => setToast(null)} delay={4000} autohide bg="dark">
-            <Toast.Body className="text-white d-flex justify-content-between align-items-center gap-3">
-              <span>{toast?.msg}</span>
-              {toast?.undo && (
-                <button type="button" className="wl-toast-link" onClick={() => undoRemove(toast.undo)}>Undo</button>
-              )}
-            </Toast.Body>
-          </Toast>
-        </ToastContainer>
-      </Modal>
+      </Modal> */}
 
       {selected && <ProductDetails key={selected.id} product={selected} onHide={() => setSelectedId(null)} />}
+      <ToastContainer className="toast-pos">
+        <Toast show={!!toast} onClose={() => setToast(null)} delay={4000} autohide bg="dark">
+          <Toast.Body className="text-white d-flex justify-content-between align-items-center gap-3">
+            <span>{toast?.msg}</span>
+            {toast?.undo && (
+              <button type="button" className="wl-toast-link" onClick={() => undoRemove(toast.undo)}>Undo</button>
+            )}
+          </Toast.Body>
+        </Toast>
+      </ToastContainer>
     </>
   );
 }

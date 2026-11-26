@@ -124,7 +124,7 @@ function AddProduct() {
                     </div>
 
                     <div className="field">
-                        <input type="number" min="0" className="form-control" placeholder="Price ($)" value={price} onChange={(e) => setPrice(e.target.value)} />
+                        <input type="number" min="0" className="form-control" placeholder="Price (₹)" value={price} onChange={(e) => setPrice(e.target.value)} />
                         {errors.price && <div className="text-danger mt-1 error-msg">{errors.price}</div>}
                     </div>
 

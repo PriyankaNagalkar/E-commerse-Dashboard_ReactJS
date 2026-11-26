@@ -25,7 +25,7 @@ function getStep(date) {
 }
 
 const fmtDate = (d, opts) =>
-    new Date(d).toLocaleDateString("en-US", opts || { day: "numeric", month: "short", year: "numeric" });
+    new Date(d).toLocaleDateString("en-EN", opts || { day: "numeric", month: "short", year: "numeric" });
 
 function Orders() {
     const { orders, setOrders, addToCart, updateCartQuantity } = useproducts();
@@ -118,8 +118,8 @@ function Orders() {
                         {/* stats */}
                         <div className="or-stats">
                             <div className="or-stat"><span>{count}</span><small>{stats.count === 1 ? "order" : "orders"}</small></div>
-                            <div className="or-stat"><span>${spent.toFixed(2)}</span><small>Total spent</small></div>
-                            <div className="or-stat green"><span>${saved.toFixed(2)}</span><small>Total saved</small></div>
+                            <div className="or-stat"><span>₹{spent.toFixed(2)}</span><small>Total spent</small></div>
+                            <div className="or-stat green"><span>₹{saved.toFixed(2)}</span><small>Total saved</small></div>
                         </div>
 
                         {/* toolbar */}
@@ -172,7 +172,7 @@ function Orders() {
                                             <span className={`or-badge ${cancelled ? "cancelled" : delivered ? "done" : ""}`}>
                                                 {cancelled ? "Cancelled" : delivered ? <><CheckCircleFill /> Delivered</> : STEPS[step]}
                                             </span>
-                                            <strong className="or-total">${Number(order.total).toFixed(2)}</strong>
+                                            <strong className="or-total">₹{Number(order.total).toFixed(2)}</strong>
                                         </div>
                                     </div>
 
@@ -234,9 +234,9 @@ function Orders() {
                                                     <img src={i.images?.[0] || i.thumbnail} alt="" />
                                                     <div className="info">
                                                         <span className="t">{i.title}</span>
-                                                        <small>Qty {i.quantity} × ${Number(i.price).toFixed(2)}</small>
+                                                        <small>Qty {i.quantity} × ₹{Number(i.price).toFixed(2)}</small>
                                                     </div>
-                                                    <strong>${(i.price * i.quantity).toFixed(2)}</strong>
+                                                    <strong>₹{(i.price * i.quantity).toFixed(2)}</strong>
                                                 </div>
                                             ))}
 
@@ -252,12 +252,12 @@ function Orders() {
                                                 {order.couponCode && <div><span>Coupon ({order.couponCode})</span><span className="green">applied</span></div>}
                                                 <div>
                                                     <span>Delivery</span>
-                                                    {order.delivery === 0 ? <span className="green">FREE</span> : <span>${Number(order.delivery).toFixed(2)}</span>}
+                                                    {order.delivery === 0 ? <span className="green">FREE</span> : <span>₹{Number(order.delivery).toFixed(2)}</span>}
                                                 </div>
                                                 {order.saved > 0.005 && (
-                                                    <div><span>You saved</span><span className="green">${Number(order.saved).toFixed(2)}</span></div>
+                                                    <div><span>You saved</span><span className="green">₹{Number(order.saved).toFixed(2)}</span></div>
                                                 )}
-                                                <div className="grand"><span>Order total</span><span>${Number(order.total).toFixed(2)}</span></div>
+                                                <div className="grand"><span>Order total</span><span>₹{Number(order.total).toFixed(2)}</span></div>
                                             </div>
                                         </div>
                                     </div>
@@ -296,7 +296,7 @@ function Orders() {
                                             ))}
                                             {snap.items.length > 5 && <span className="more">+{snap.items.length - 5}</span>}
                                         </div>
-                                        <p>Order <strong>#{snap.id}</strong> (${Number(snap.total).toFixed(2)}) will be cancelled.</p>
+                                        <p>Order <strong>#{snap.id}</strong> (₹{Number(snap.total).toFixed(2)}) will be cancelled.</p>
                                     </>
                                 )}
 

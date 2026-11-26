@@ -16,35 +16,6 @@ function getStrength(p) {
 const strengthLabels = ["", "Weak", "Fair", "Good", "Strong"]
 const strengthColors = ["", "#dc3545", "#c15d0c", "#b2890c", "#08502e"]
 
-function PasswordInput({ label, value, onChange, error }) {
-    const [show, setShow] = useState(false)
-
-    return (
-        <>
-            <div className={`pw-field ${error ? "has-error" : ""}`}>
-                <FloatingLabel label={label}>
-                    <Form.Control
-                        type={show ? "text" : "password"}
-                        placeholder={label}
-                        autoComplete="new-password"
-                        value={value}
-                        onChange={onChange}
-                    />
-                </FloatingLabel>
-                <button
-                    type="button"
-                    className="pw-eye"
-                    onClick={() => setShow((s) => !s)}
-                    aria-label={show ? "Hide password" : "Show password"}
-                >
-                    {show ? <EyeSlash /> : <Eye />}
-                </button>
-            </div>
-            {error && <div className="text-danger mt-1 error-msg">{error}</div>}
-        </>
-    )
-}
-
 function Register() {
     const [firstName, setName] = useState("");
     const [password, setPassword] = useState("");
